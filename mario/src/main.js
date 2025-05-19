@@ -1,6 +1,7 @@
 import { Level1 } from './scenes/Level1.js';
 import { Death } from './scenes/Death.js';
 import { Menu } from './scenes/Menu.js';
+import { Win } from './scenes/Win.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -20,7 +21,8 @@ const config = {
     scene: [
         Menu,
         Level1,
-        Death
+        Death,
+        Win
     ],
     scale: {
         mode: Phaser.Scale.FIT,

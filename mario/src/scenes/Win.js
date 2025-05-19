@@ -1,6 +1,6 @@
-export class Death extends Phaser.Scene {
+export class Win extends Phaser.Scene {
     constructor(){
-        super('Death')
+        super('Win')
     }
 
     preload(){
@@ -9,20 +9,20 @@ export class Death extends Phaser.Scene {
 
     create(){
         this.background = this.add.image(640,360,'background');
-        this.background.setTint(0xff0000);
-        const title=this.add.text(450, 200, 'GAME OVER', {fontFamily: "Tahoma", fontSize: '64px', fill: '#fff' });
+        this.background.setTint(0x7fbf7f);
+        const title=this.add.text(450, 200, 'You won!', {fontFamily: "Tahoma", fontSize: '64px', fill: '#fff' });
         title.setOrigin(0.5);
         title.setPosition(this.cameras.main.centerX, this.cameras.main.centerY - 100);
         this.cursors = this.input.keyboard.createCursorKeys();
-        const subtitle=this.add.text(450, 300, 'Press ENTER to restart level', { fontSize: '20px', fill: '#fff' });
+        const subtitle=this.add.text(450, 300, 'Press ENTER to go back to menu', { fontSize: '20px', fill: '#fff' });
         subtitle.setOrigin(0.5);
         subtitle.setPosition(this.cameras.main.centerX, this.cameras.main.centerY);
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     }
 
-    update(){
+    update(time){
         if(this.enterKey.isDown){
-            this.scene.start('Level1');
+            this.scene.start('Menu');
         }
     }
 }

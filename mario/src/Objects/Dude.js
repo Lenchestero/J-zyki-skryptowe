@@ -62,7 +62,7 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
         } 
         else {
             if (this.jumps < this.maxJumps && currentTime - this.lastJumpTime > this.jumpCooldown) {
-                this.setVelocityY(-300);
+                this.setVelocityY(-270);
                 this.anims.play('jump', true);
                 this.jumps++; 
                 this.lastJumpTime = currentTime;
