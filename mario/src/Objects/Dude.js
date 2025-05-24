@@ -10,7 +10,10 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
         this.maxJumps = 2;  
         this.canJump = true;  
         this.lastJumpTime = 0;  
-        this.jumpCooldown = 300;  
+        this.jumpCooldown = 300; 
+        this.health = 5;
+        this.lifes = 3;
+        this.canAttack = true; 
     }
 
     make_Animations(){
@@ -30,6 +33,12 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
             key: 'idle',
             frames: this.anims.generateFrameNumbers('idle', {start: 0, end: 2}),
             frameRate: 5,
+            repeat: -1
+        })
+         this.anims.create({
+            key: 'attack',
+            frames: this.anims.generateFrameNumbers('dude_attack', {start: 0, end: 4}),
+            frameRate: 10,
             repeat: -1
         })
 
@@ -74,4 +83,25 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
         this.setVelocityX(0);
         this.anims.play('idle', true);
     }
+
+    attack(enemy) {
+    this.setVelocityX(0);
+    this.anims.play('attack', true);
+    if (this.canAttack && this.scene.physics.world.overlap(this, enemy)) {
+        if (enemy.health > 0) {
+            this.canAttack = false;
+            enemy.health--;
+            enemy.setTint(0xff0000);
+            this.scene.time.delayedCall(100, () => {
+                enemy.clearTint();
+            });
+            this.scene.time.delayedCall(1000, () => {
+                this.canAttack = true;
+            });
+        } 
+        else {
+            enemy.disableBody(true, true);
+        }
+    }
+}
 }
