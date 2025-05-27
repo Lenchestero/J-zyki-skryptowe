@@ -13,6 +13,8 @@ $current_scene = :menu
 @jumping = false
 @speed = 4
 @keys_held = {}
+@coins = []
+@coins_collected = 0;
 
 def draw_menu
 	clear
@@ -28,7 +30,7 @@ def draw_menu
 	title.x -= title.width / 2
 
 	controls = Text.new(
-	"Controls: Arrows to move",
+	"Controls: Arrows to move, space bar to jump",
 	x: Window.width / 2,
 	y: Window.height / 2 - 30,
 	size: 20,
@@ -64,6 +66,12 @@ def add_platform(ismovable:,length:,height:,position:)
 			direction: 1}
 		@moving_platforms << moving_tile
 	end
+	amount = length/2 
+	amount.times do |x|
+		h = position + 10 + (x*32) + (x*130)
+		coin = Image.new('assets/coin.png', x: h, y: height - 70, width: 40, height: 40)
+		@coins << coin
+	end
 end
 
 def move_the_platforms
@@ -75,13 +83,33 @@ def move_the_platforms
 	end
 end
 
-
+def collect_coins
+	@coins.reject! do |coin|
+		if @dude.x < coin.x + coin.width && @dude.x + @dude.width > coin.x && @dude.y < coin.y + coin.height && @dude.y + @dude.height > coin.y
+			coin.remove
+			@coins_collected += 1
+			true
+			
+		else
+			false
+		end
+	end
+end
 
 def start_game
 	clear
 	@platforms.clear
 	@moving_platforms.clear
+	@coins.clear
+	@coins_collected = 0
 	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
+	@score = Text.new(
+	"Score: 0",
+	x: 24,
+	y: 24,
+	size: 20,
+	color: 'white',
+	font: 'assets/Regular.ttf')
 	add_platform(ismovable: false, length: 6, height: 560, position: 20)
 	add_platform(ismovable: false, length: 7, height: 500, position: 450)
 	add_platform(ismovable: false, length: 4, height: 300, position: 100)
@@ -103,6 +131,29 @@ def death
 	@background.color = [1, 0, 0, 0.5]
 	title = Text.new(
 	"You died",
+	x: Window.width / 2, 
+	y: Window.height / 2 - 100,
+	size: 64,
+	color: 'white',
+	font: 'assets/Regular.ttf')
+	title.x -= title.width / 2
+
+	subtitle = Text.new(
+	"Press ENTER to restart",
+	x: Window.width / 2, 
+	y: Window.height / 2 + 50,
+	size: 20,
+	color: 'white',
+	font: 'assets/Regular.ttf')
+	subtitle.x -= subtitle.width / 2
+end
+
+def win
+	clear
+	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
+	@background.color = [0, 1, 0, 0.5]
+	title = Text.new(
+	"You won!",
 	x: Window.width / 2, 
 	y: Window.height / 2 - 100,
 	size: 64,
@@ -144,6 +195,11 @@ on :key_down do |event|
 			start_game
 		end
 		when :death
+		if event.key == "return"
+			$current_scene = :menu
+			draw_menu
+		end
+		when :win
 		if event.key == "return"
 			$current_scene = :menu
 			draw_menu
@@ -202,6 +258,12 @@ update do
 			death
 		end
 		move_the_platforms
+		collect_coins
+		@score.text = "Score: #{@coins_collected}"
+		if @coins.empty?
+			$current_scene = :win
+			win
+		end
 		if @keys_held['right']
 			@dude.x += @speed
 			@facing_left = false
@@ -237,7 +299,7 @@ update do
 		end
 		@moving_platforms.each do |platform|
 			p = platform[:image]
-			if @dude.x < p.x + p.width - 70 && @dude.x + @dude.width > p.x + 70 &&@dude.y < p.y + p.height && @dude.y + @dude.height > p.y
+			if @dude.x < p.x + p.width - 70 && @dude.x + @dude.width > p.x + 70 &&@dude.y < p.y + p.height - 30 && @dude.y + @dude.height > p.y
 				if @dude.y + 60 <= p.y 
 					@dude.y = p.y - @dude.height
 					@velocity_y = 0
