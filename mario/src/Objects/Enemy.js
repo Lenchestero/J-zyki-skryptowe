@@ -24,17 +24,19 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite{
             frameRate: 7,
             repeat: -1
         })
-
     }
-    move(){
-        this.anims.play('slime_walk', true);
-        this.setVelocityX(this.direction * 50);
-        this.flipX = this.direction > 0;
-        if (this.x <= 1050) {
-            this.direction = 1;
-        }
-        else if (this.x >= 1200) {
-            this.direction = -1;
+    
+    move(x, minX, maxX){
+        if (!this.isAttacking) {
+            this.anims.play('slime_walk', true);
+            this.setVelocityX(this.direction * 50);
+            this.flipX = this.direction > 0;
+            if (x <= minX) {
+                this.direction = 1;
+            }
+            else if (x >= maxX) {
+                this.direction = -1;
+            }
         }
     }
 
@@ -42,6 +44,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite{
         if (!this.isAttacking) {
             this.isAttacking = true;
             this.scene.time.delayedCall(300, () => {
+                if (!this || !this.body) {
+                    return;
+                }
                 this.setVelocityX(0);
                 this.anims.play('slime_attack', true);
                 dude.health --;

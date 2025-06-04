@@ -6,7 +6,13 @@ export class Level1 extends Phaser.Scene {
     constructor() {
         super('Level1');
         this.coins_collected = 0;
-        this.coins_spawned = 0; 
+        this.coins_spawned = 0;
+        this.position_x = 0;
+        this.position_y = 0;
+        this.platforms = null;
+        this.moving_platforms = null;
+        this.coin = null;
+        this.slimes = null;  
     }
 
     preload(){
@@ -20,23 +26,30 @@ export class Level1 extends Phaser.Scene {
         this.load.spritesheet('idle', 'assets/Upward Jump.png', {frameWidth: 128, frameHeight: 128});
         this.load.spritesheet('slime_attack', 'assets/Slime1_Attack_full.png', {frameWidth: 64, frameHeight: 64});
         this.load.spritesheet('slime_walk', 'assets/Slime1_Run_body.png', {frameWidth: 64, frameHeight: 64});
+        this.load.json("level", "level_maker.json")
     }
 
-    add_platform(ismovable, length, height, position){
-        if(ismovable == false){
+    add_platform(ismovable, length, height, position, isEnemy = false){
+        if(!ismovable){
             for(let x= 0 ;  x <= length; x++ ){
                 let h =position + (x * 32) 
                 this.platforms.create(h,height,'tile2').setScale(2).refreshBody();
             }
+            if(isEnemy){
+                const slime = new Enemy(this,position + length/2 *32 , height-80).setScale(2);
+                slime.make_Animations();
+                slime.setData("MinX", position - 70 );
+                slime.setData("MaxX", position + length *32 - 30);
+                this.slimes.add(slime)
+            }
         }
         else{
-            this.movingPlatform = this.physics.add.sprite(position, height, 'tile_move').setScale(2).setOrigin(0.5, 0.5);
-            this.movingPlatform.setImmovable(true);
-            this.movingPlatform.body.setAllowGravity(false);
-            this.platformSpeed = 1;  
-            this.platformMinX = 400;  
-            this.platformMaxX = 1000;  
-            this.platformDirection = 1;
+            const new_platform = this.moving_platforms.create(position, height, 'tile_move').setScale(2).setOrigin(0.5, 0.5);
+            new_platform.setImmovable(true);
+            new_platform.body.setAllowGravity(false); 
+            new_platform.setVelocityX(150)
+            new_platform.setData("platformMinX", position - 50);
+            new_platform.setData("platformMaxX", position + 600);   
         }
         for (let x= 0; x <= Math.floor(length/2); x++ ) {
             let h =position + (x * 32) + (x*30)
@@ -47,15 +60,43 @@ export class Level1 extends Phaser.Scene {
         }
     }
 
-    create() {
-
-        this.add.image(640,360,'background');
+    loading(level){
+        const level_content = this.cache.json.get(level)
         this.platforms = this.physics.add.staticGroup();
+        this.moving_platforms = this.physics.add.group()
+        this.coin= this.physics.add.group();
+        this.slimes= this.physics.add.group();
+
+
+        let dude_spawn = true
+
+        level_content.platforms.forEach(p =>{
+            this.add_platform(p.ismovable, p.length, p.height, p.position, p.isEnemy)
+            if(dude_spawn && !p.ismovable){
+                this.dude= new Dude(this,p.position + (Math.floor(p.length/2) * 32),p.height - 100);
+                this.position_x = this.dude.body.position.x;
+                this.position_y = this.dude.body.position.y;
+                this.dude.make_Animations();
+                dude_spawn = false
+            }
+        })
+        
+    }
+    slime_attack(player, enemy){
+        if(enemy){
+            enemy.attack(player);
+        }
+    }
+
+    create() {
+        this.physics.world.setBounds(0, -700, 1280, 1700);
+        this.add.image(640,360,'background');
+        this.loading("level");
         this.scoreText = this.add.text(16, 16, 'Score: 0', {
             fontSize: '24px',
             fill: '#ffffff'
         });
-        this.healthtext = this.add.text(1100, 16, 'Health: 5', {
+        this.healthtext = this.add.text(1100, 16, 'Health: 8', {
             fontSize: '24px',
             fill: '#ffffff'
         });
@@ -63,36 +104,32 @@ export class Level1 extends Phaser.Scene {
             fontSize: '24px',
             fill: '#ffffff'
         });
-        this.coin= this.physics.add.group();
-        this.add_platform(false, 6, 560 , 20 );
-        this.add_platform(false, 7, 500, 300);
-        this.add_platform(false, 4, 300 , 100 );
-        this.add_platform(false, 3, 500 , 700 );
-        this.add_platform(false, 7, 600 , 1000 );
-        this.add_platform(true, 7, 200 , 500 );
-        this.dude= new Dude(this,100,400);
-        this.slime= new Enemy(this,1100,400).setScale(2);
-        this.slime.setTint(0xFF7F50);
         this.physics.add.collider(this.dude, this.platforms);
-        this.physics.add.collider(this.slime, this.platforms);
-        this.physics.add.collider(this.dude, this.movingPlatform);
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.dude.make_Animations();
-        this.slime.make_Animations();
+        this.physics.add.collider(this.slimes, this.platforms);
+        this.physics.add.collider(this.dude, this.moving_platforms);
         this.physics.add.collider(this.coin, this.platforms);
         this.physics.add.overlap(this.dude, this.coin, this.collectItem, null, this);
-        this.physics.add.overlap(this.dude, this.slime, () => {this.slime.attack(this.dude);}, null, this);
+        this.physics.add.overlap(this.dude, this.slimes, this.slime_attack, null, this);
+        this.cursors = this.input.keyboard.createCursorKeys();
         this.keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
         
     }   
-    
-    /*inFieldofAttack(dude){
-        this.dude.canAttack = true;
-        this.time.delayedCall(1000, () => {this.dude.canAttack = false;}); 
-    }*/
 
-    collectItem(dude, item) {
-        item.disableBody(true, true);
+
+    player_on_platform(platform){
+        if(platform.x > platform.getData("platformMaxX")){
+            platform.setVelocityX(-150)
+        }
+        else if(platform.x < platform.getData("platformMinX")){
+            platform.setVelocityX(150)
+        }
+        if(this.dude.body.blocked.down && platform.body.touching.up){
+            this.dude.body.velocity.x += platform.body.velocity.x
+        }
+    }
+
+    collectItem(dude,item) {
+        item.destroy();
         this.coins_collected++;
         this.scoreText.setText('Score: ' + this.coins_collected);
     }
@@ -115,28 +152,27 @@ export class Level1 extends Phaser.Scene {
             this.dude.jump();
         }
         else if(this.keyF.isDown){
-            this.dude.attack(this.slime);
+            this.dude.attack(this.slimes);
         }
         else {
             this.dude.idle();
         }
-        if(!this.slime.isAttacking){
-            this.slime.move();  
-        }
-        this.movingPlatform.x += this.platformSpeed * this.platformDirection;
-        if (this.movingPlatform.x >= this.platformMaxX || this.movingPlatform.x <= this.platformMinX) {
-            this.platformDirection *= -1;
-        }
 
+
+        this.moving_platforms.children.iterate(this.player_on_platform,this)
+        if(this.slimes && this.slimes.children){
+            this.slimes.children.iterate((slime)=>{if (slime) {slime.move(slime.body.position.x, slime.getData("MinX"),slime.getData("MaxX"))}})
+        }
         if ((this.dude.y > 620)|| (this.dude.health == 0)) {
             if(this.dude.lifes == 1){
                 this.coins_collected = 0;
                 this.scene.start('Death');
             }
             else {
-                this.dude.x= 100;
-                this.dude.y= 400;
-                this.dude.health = 5;
+                this.dude.x= this.position_x + this.dude.body.width * 2;
+                this.dude.y= this.position_y;
+                this.dude.setVelocity(0);
+                this.dude.health = 8;
                 this.dude.lifes --;
                 this.updatehealth(this.dude);
                 this.updateLifes(this.dude);

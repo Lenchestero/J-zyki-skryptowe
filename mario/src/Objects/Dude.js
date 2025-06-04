@@ -5,13 +5,13 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
         scene.physics.add.existing(this);
         this.setBounce(0);
         this.setCollideWorldBounds(true);
-        this.body.setSize(60, 100).setOffset(32, 30);
+        this.body.setSize(40, 100).setOffset(38, 30);
         this.jumps = 0;
         this.maxJumps = 2;  
         this.canJump = true;  
         this.lastJumpTime = 0;  
         this.jumpCooldown = 300; 
-        this.health = 5;
+        this.health = 8;
         this.lifes = 3;
         this.canAttack = true; 
     }
@@ -62,7 +62,7 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
         if (this.body.touching.down) {
             this.canJump = true; 
             if (this.canJump) {
-                this.setVelocityY(-400); 
+                this.setVelocityY(-600); 
                 this.anims.play('jump', true);
                 this.jumps = 1;
                 this.canJump = false;
@@ -71,7 +71,7 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
         } 
         else {
             if (this.jumps < this.maxJumps && currentTime - this.lastJumpTime > this.jumpCooldown) {
-                this.setVelocityY(-270);
+                this.body.velocity.y -= 100
                 this.anims.play('jump', true);
                 this.jumps++; 
                 this.lastJumpTime = currentTime;
@@ -84,24 +84,30 @@ export class Dude extends Phaser.Physics.Arcade.Sprite{
         this.anims.play('idle', true);
     }
 
-    attack(enemy) {
+    attack(enemiesGroup) {
     this.setVelocityX(0);
     this.anims.play('attack', true);
-    if (this.canAttack && this.scene.physics.world.overlap(this, enemy)) {
-        if (enemy.health > 0) {
-            this.canAttack = false;
-            enemy.health--;
-            enemy.setTint(0xff0000);
-            this.scene.time.delayedCall(100, () => {
-                enemy.clearTint();
-            });
-            this.scene.time.delayedCall(1000, () => {
-                this.canAttack = true;
-            });
-        } 
-        else {
-            enemy.disableBody(true, true);
+
+    if (!this.canAttack) return;
+
+    enemiesGroup.getChildren().forEach(enemy => {
+        if (this.scene.physics.world.overlap(this, enemy)) {
+            if (enemy.health > 0) {
+                this.canAttack = false;
+                enemy.health--;
+                enemy.setTint(0xff0000);
+
+                this.scene.time.delayedCall(100, () => {
+                    enemy.clearTint();
+                });
+
+                this.scene.time.delayedCall(1000, () => {
+                    this.canAttack = true;
+                });
+            } else {
+                enemy.destroy();
+            }
         }
-    }
+    });
 }
 }

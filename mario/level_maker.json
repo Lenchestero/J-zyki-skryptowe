@@ -1,0 +1,11 @@
+{
+	"platforms":[
+		{"ismovable": true, "length": 5, "height": 100, "position": 100, "isEnemy": false},
+		{"ismovable": false, "length": 7, "height": 400, "position": 1000, "isEnemy": false},
+		{"ismovable": false, "length": 7, "height": 200, "position": 500, "isEnemy": true},
+		{"ismovable": false, "length": 4, "height": 700, "position": 200, "isEnemy":false},
+		{"ismovable": true, "length": 5, "height": 400, "position": 700, "isEnemy": false},
+		{"ismovable": true, "length": 5, "height": 500, "position": 500, "isEnemy": false},
+		{"ismovable": false, "length": 2, "height": 300, "position": 100, "isEnemy": true}
+	]
+}

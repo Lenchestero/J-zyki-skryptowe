@@ -5,7 +5,7 @@ import { Win } from './scenes/Win.js';
 
 const config = {
     type: Phaser.AUTO,
-    title: 'Overlord Rising',
+    title: 'Platform Jumper',
     description: '',
     parent: 'game-container',
     width: 1280,
@@ -14,7 +14,7 @@ const config = {
         default: 'arcade',
         arcade: {
             debug:false,
-            gravity: { y: 400}
+            gravity: { y: 800}
         }
     },
     pixelArt: true,

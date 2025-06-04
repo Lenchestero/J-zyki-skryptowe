@@ -14,7 +14,7 @@ export class Death extends Phaser.Scene {
         title.setOrigin(0.5);
         title.setPosition(this.cameras.main.centerX, this.cameras.main.centerY - 100);
         this.cursors = this.input.keyboard.createCursorKeys();
-        const subtitle=this.add.text(450, 300, 'Press ENTER to restart level', { fontSize: '20px', fill: '#fff' });
+        const subtitle=this.add.text(450, 300, 'Press ENTER to restart level', { fontSize: '24px', fill: '#fff', strokeThickness: 1, stroke: '#fff' });
         subtitle.setOrigin(0.5);
         subtitle.setPosition(this.cameras.main.centerX, this.cameras.main.centerY);
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
