@@ -15,6 +15,10 @@ $current_scene = :menu
 @keys_held = {}
 @coins = []
 @coins_collected = 0;
+@lifes = 3
+@dude_health = 5
+@enemies = []
+@hit = 0
 
 def draw_menu
 	clear
@@ -30,13 +34,15 @@ def draw_menu
 	title.x -= title.width / 2
 
 	controls = Text.new(
-	"Controls: Arrows to move, space bar to jump",
+	"Controls: Arrows to move, space bar to jump, F to attack",
 	x: Window.width / 2,
 	y: Window.height / 2 - 30,
 	size: 20,
 	color: 'white',
 	font: 'assets/Regular.ttf')
 	controls.x -= controls.width / 2
+
+
 
 	subtitle = Text.new(
 	"Press ENTER to start game",
@@ -50,12 +56,17 @@ def draw_menu
 	@texts = [title, controls, subtitle]
 end
 
-def add_platform(ismovable:,length:,height:,position:)
+def add_platform(has_enemy:,ismovable:,length:,height:,position:)
 	unless ismovable
 		length.times do |x|
 			h = position + (x*64)
 			tile = Image.new('assets/Tile_02.png', x: h, y: height, width: 64, height: 64)
 			@platforms << {Image: tile, x: position, y: height, length: length, width: length * 64, height: 64 }
+		end
+		if has_enemy
+			enemy = Sprite.new('assets/spritesheet_enemy.png', clip_width: 64, clip_height: 64, width: 128, height: 128, x: position + (length * 64) / 2, y: height - 78, time: 100, animations: { walk: 1..8, attack: 9..18})
+			enemy.play animation: :walk, loop: true
+			@enemies << { Image: enemy, direction: 1, health: 5, min_x: position - 10, max_x: position + length *64 + 10, enemy_last_attack: Time.now, is_attacking: false}
 		end
 	else
 		moving_tile= {
@@ -72,6 +83,22 @@ def add_platform(ismovable:,length:,height:,position:)
 		coin = Image.new('assets/coin.png', x: h, y: height - 70, width: 40, height: 40)
 		@coins << coin
 	end
+end
+
+def move_enemy
+		@enemies.each do |enemy|
+			if !enemy[:is_attacking]
+				enemy[:Image].x += 1 * enemy[:direction]
+				if enemy[:Image].x < enemy[:min_x] || enemy[:Image].x + enemy[:Image].width > enemy[:max_x]
+					enemy[:direction] *= -1
+					if enemy[:direction] == -1
+						enemy[:Image].play animation: :walk, loop: true, flip: :horizontal
+					else
+						enemy[:Image].play animation: :walk, loop: true
+					end
+				end
+			end
+		end 
 end
 
 def move_the_platforms
@@ -96,11 +123,50 @@ def collect_coins
 	end
 end
 
+def enemy_attack
+	@enemies.each do |enemy|
+		if  @dude.x < enemy[:Image].x + enemy[:Image].width - 100 && @dude.x + @dude.width > enemy[:Image].x + 100 && @dude.y < enemy[:Image].y + enemy[:Image].height && @dude.y + @dude.height > enemy[:Image].y
+			enemy[:is_attacking] = true
+			if Time.now - enemy[:enemy_last_attack] > 1
+				enemy[:Image].play animation: :attack, loop: true
+				enemy[:enemy_last_attack] = Time.now
+				@dude_health -= 1;
+				@health_text.text = "Health: #{@dude_health}"
+				@dude.color = [1, 0, 0, 1]
+			else
+				@dude.color = [1, 1, 1, 1]
+			end
+		else
+			enemy[:is_attacking] = false
+		end
+	end
+end
+
+def attacking
+	@enemies.reject! do |enemy|
+		if  @dude.x < enemy[:Image].x + enemy[:Image].width - 100 && @dude.x + @dude.width > enemy[:Image].x + 100 && @dude.y < enemy[:Image].y + enemy[:Image].height && @dude.y + @dude.height > enemy[:Image].y
+			enemy[:health] -= 1
+			opacity = (enemy[:health] + 1 ).to_f/ 4.0
+			enemy[:Image].color = [1,1,1,opacity] 
+			if enemy[:health] == 0
+				enemy[:Image].remove
+				@dude.color = [1,1,1,1]
+				true
+			else
+				false
+			end
+		end
+	end
+end
+
 def start_game
 	clear
 	@platforms.clear
 	@moving_platforms.clear
 	@coins.clear
+	@lifes = 3
+	@health = 5
+	@enemies.clear
 	@coins_collected = 0
 	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
 	@score = Text.new(
@@ -110,12 +176,27 @@ def start_game
 	size: 20,
 	color: 'white',
 	font: 'assets/Regular.ttf')
-	add_platform(ismovable: false, length: 6, height: 560, position: 20)
-	add_platform(ismovable: false, length: 7, height: 500, position: 450)
-	add_platform(ismovable: false, length: 4, height: 300, position: 100)
-	add_platform(ismovable: false, length: 4, height: 600, position: 1000)
-	add_platform(ismovable: true, length: 4, height: 200, position: 600)
-	@dude = Sprite.new('assets/spritesheet.png', clip_width: 128, clip_height: 128, x: 100, y: 432, time: 100, animations: { idle: 25..27, kick: 1..5, jump: 6..12, run: 13..24})
+	@life_text = Text.new(
+	"Lifes left: 2",
+	x: Window.width/2 - 50,
+	y: 20,
+	size: 20,
+	color: 'white',
+	font: 'assets/Regular.ttf')
+	@health_text = Text.new(
+	"Health: 5",
+	x: 1150,
+	y: 20,
+	size: 20,
+	color: 'white',
+	font: 'assets/Regular.ttf')
+	add_platform(has_enemy: false, ismovable: false, length: 6, height: 560, position: 20)
+	add_platform(has_enemy: true, ismovable: false, length: 7, height: 500, position: 450)
+	add_platform(has_enemy: false, ismovable: false, length: 4, height: 300, position: 100)
+	add_platform(has_enemy: true, ismovable: false, length: 4, height: 600, position: 1000)
+	add_platform(has_enemy: false, ismovable: true, length: 4, height: 200, position: 600)
+	@dude = Sprite.new('assets/spritesheet.png', clip_width: 128, clip_height: 128, x: 100, y: 432, time: 100, animations: { idle: 25..27, kick: 1..4, jump: 6..12, run: 13..24})
+	@last_attack = Time.now
 	@dude.play animation: :idle, loop: true	
 	@player_state = :idle
 	@dude.width = 128
@@ -219,6 +300,18 @@ on :key_down do |event|
 				@dude.play animation: :run, loop: false, flip: :horizontal do
 				@dude.play animation: :idle, loop: true
 				end
+			when 'f'
+				@attacking = true
+				@attack_start = Time.now
+				if @facing_left == false 
+					@dude.play animation: :kick, loop: true do
+					@dude.play animation: :idle, loop: true
+					end
+				else
+					@dude.play animation: :kick, loop: true, flip: :horizontal do
+					@dude.play animation: :idle, loop: true, flip: :horizontal
+					end
+				end
 			when 'space'
 				if player_on_ground?
 					@velocity_y = -12
@@ -233,31 +326,48 @@ on :key_down do |event|
 						end
 					end
 				end
-			when 'f'
-				if @facing_left == false 
-					@dude.play animation: :kick, loop: false do
-					@dude.play animation: :idle, loop: true
-					end
-				else
-					@dude.play animation: :kick, loop: false, flip: :horizontal do
-					@dude.play animation: :idle, loop: true, flip: :horizontal
-					end
-				end
 		end
 	end
 end
 
 on :key_up do |event|
-  @keys_held[event.key] = false
+	if event.key == 'f'
+		@attacking = false
+	end
+	@keys_held[event.key] = false
 end
 
 update do
 	if $current_scene == :level1
 		if @dude.y > Window.height
-			$current_scene = :death
-			death
+			if @lifes == 1
+				$current_scene = :death
+				death
+			else
+				@lifes -= 1
+				@life_text.text = "Lifes left: #{@lifes - 1}"
+				@dude_health = 5
+				@health_text.text = "Health: #{@dude_health}"
+				@dude.x = 100
+				@dude.y = 432
+			end
+		end
+		if @dude_health == 0
+			if @lifes == 1
+				$current_scene = :death
+				death
+			else
+				@lifes -= 1
+				@dude_health = 5
+				@health_text.text = "Health: #{@dude_health}"
+				@dude.x = 100
+				@dude.y = 432
+				@dude.color = [1,1,1,1]
+			end
 		end
 		move_the_platforms
+		move_enemy
+		enemy_attack
 		collect_coins
 		@score.text = "Score: #{@coins_collected}"
 		if @coins.empty?
@@ -267,17 +377,23 @@ update do
 		if @keys_held['right']
 			@dude.x += @speed
 			@facing_left = false
-			unless @jumping
+			unless @jumping || @attacking
 				@dude.play animation: :run, loop: true
 			end
 		elsif @keys_held['left']
 			@dude.x -= @speed
 			@facing_left = true
-			unless @jumping
+			unless @jumping || @attacking
 				@dude.play animation: :run, loop: true, flip: :horizontal
 			end
 		else
-			unless @jumping
+			if @attacking
+				if (Time.now - @last_attack) > 0.3
+					attacking
+					@last_attack = Time.now
+				end
+			end
+			unless @jumping || @attacking
 				@dude.play animation: :idle, loop: true
 			end
 		end
