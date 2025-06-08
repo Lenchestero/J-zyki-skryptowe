@@ -16,7 +16,7 @@ export class Level1 extends Phaser.Scene {
     }
 
     init(data){
-        this.isRandom = data.isRandom
+        this.isRandom = data.isRandom || null
     }
 
     preload(){
@@ -154,6 +154,8 @@ export class Level1 extends Phaser.Scene {
     }
 
     create() {
+        this.coins_collected = 0;
+        this.coins_spawned = 0;
         this.physics.world.setBounds(0, -700, 1280, 1700);
         this.add.image(640,360,'background');
         if (!this.isRandom){
@@ -202,6 +204,8 @@ export class Level1 extends Phaser.Scene {
     collectItem(dude,item) {
         item.destroy();
         this.coins_collected++;
+        console.log(this.coins_spawned)
+        console.log(this.coins_collected)
         this.scoreText.setText('Score: ' + this.coins_collected);
     }
 

@@ -1,7 +1,7 @@
 {
 	"platforms":[
 		{"ismovable": true, "length": 5, "height": 100, "position": 100, "isEnemy": false},
-		{"ismovable": false, "length": 5, "height": 400, "position": 968, "isEnemy": false},
+		{"ismovable": false, "length": 5, "height": 400, "position": 936, "isEnemy": false},
 		{"ismovable": false, "length": 7, "height": 200, "position": 500, "isEnemy": true},
 		{"ismovable": false, "length": 4, "height": 600, "position": 200, "isEnemy":false},
 		{"ismovable": true, "length": 5, "height": 500, "position": 500, "isEnemy": false},
