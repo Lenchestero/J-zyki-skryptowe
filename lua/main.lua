@@ -32,6 +32,8 @@ different_blocks = {
     }
 }
 
+sound = {}
+
 function love.load()
     love.window.setTitle("Tetris LOVE")
     love.window.setMode(GRID_WIDTH * BLOCK_SIZE, GRID_HEIGHT * BLOCK_SIZE)
@@ -46,6 +48,18 @@ function love.load()
         end
     end
     spawnPiece()
+
+    sound.rotate = love.audio.newSource("audio/real-swish_3.mp3", "static")
+    sound.clear = love.audio.newSource("audio/arcade-ui-18.mp3", "static")
+    sound.loss = love.audio.newSource("audio/arcade-ui-4.mp3", "static")
+    sound.placing = love.audio.newSource("audio/epic-object-placing.mp3", "static")
+    sound.move = love.audio.newSource("audio/swipe.mp3", "static")
+    sound.menu = love.audio.newSource("audio/ui-button-click-5.mp3", "static")
+end
+
+function playSoundClone(src)
+    local s = src:clone()
+    s:play()
 end
 
 function colorToString(color)
@@ -76,6 +90,7 @@ function spawnPiece()
         currentPiece = newPiece
     else
         gameOver = true
+        sound.loss:play()
     end
 end
 
@@ -126,13 +141,14 @@ function rotateMatrix(matrix)
             table.insert(rotated[x], matrix[y][x])
         end
     end
-
+    playSoundClone(sound.rotate)
     return rotated
 end
 
 function movePieceDown()
     if canMove(currentPiece, 0, 1) then
         currentPiece.y = currentPiece.y + 1
+        playSoundClone(sound.move)
     else
         placePiece()
         clearLines()
@@ -161,6 +177,7 @@ function placePiece()
             end
         end
     end
+    playSoundClone(sound.placing)
     saveBoard()
 end
 
@@ -185,6 +202,7 @@ function clearLines()
             end
             table.insert(board, 1, newLine)
             linesClearedNow = linesClearedNow + 1
+            playSoundClone(sound.clear)
         else
             y = y - 1
         end
@@ -229,7 +247,7 @@ function saveBoard()
             end
         end
     end
-    
+
     local jsonData = json.encode(saveData)
     love.filesystem.write("board_save.json", jsonData)
 end
@@ -297,9 +315,11 @@ end
 function love.keypressed(key)
     if current_scene == "menu" then
         if  key == "return" then
+            playSoundClone(sound.menu)
             current_scene = "game"
             return
         elseif key == "space" then
+            playSoundClone(sound.menu)
             current_scene = "game"
             loadBoard()
             return
@@ -309,6 +329,7 @@ function love.keypressed(key)
     if current_scene == "game" then
         if key == "left" and canMove(currentPiece, -1, 0) then
             currentPiece.x = currentPiece.x - 1
+            playSoundClone(sound.move)
         elseif key == "up" then
             local rotatedShape = rotateMatrix(currentPiece.shape)
             local testPiece = {
@@ -321,11 +342,14 @@ function love.keypressed(key)
             end
         elseif key == "right" and canMove(currentPiece, 1, 0) then
             currentPiece.x = currentPiece.x + 1
+            playSoundClone(sound.move)
         elseif key == "down" then
             movePieceDown()
+            playSoundClone(sound.move)
         elseif key == "space" then
             hardDrop()
         elseif key == "escape" then
+            playSoundClone(sound.menu)
             current_scene = "menu"
             gameOver = false
             clearedLines = 0
@@ -370,6 +394,7 @@ function drawGame()
     love.graphics.print("Score: " .. tostring(clearedLines), 10, 10)
 
     if gameOver then
+
         love.graphics.setColor(123/255, 75/255, 148/255, 0.2)
         local squareSize = 400
         local squareX = (GRID_WIDTH * BLOCK_SIZE - squareSize) / 2
