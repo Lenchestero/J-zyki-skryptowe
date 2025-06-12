@@ -1,3 +1,7 @@
+json = require "json"
+io.stdout:setvbuf("no")
+
+
 current_scene = "menu"
 
 GRID_WIDTH = 14
@@ -31,7 +35,6 @@ different_blocks = {
 function love.load()
     love.window.setTitle("Tetris LOVE")
     love.window.setMode(GRID_WIDTH * BLOCK_SIZE, GRID_HEIGHT * BLOCK_SIZE)
-
     font = love.graphics.newFont("Savate.ttf", 52)
     math.randomseed(os.time())
 
@@ -42,8 +45,11 @@ function love.load()
             board[y][x] = nil
         end
     end
-
     spawnPiece()
+end
+
+function colorToString(color)
+    return string.format("%.3f,%.3f,%.3f", color[1], color[2], color[3])
 end
 
 function spawnPiece()
@@ -155,6 +161,7 @@ function placePiece()
             end
         end
     end
+    saveBoard()
 end
 
 function clearLines()
@@ -184,6 +191,8 @@ function clearLines()
     end
 
     clearedLines = clearedLines + linesClearedNow
+    love.filesystem.write("score_save.txt", tostring(clearedLines))
+    saveBoard()
 end
 
 function drawBoard()
@@ -207,12 +216,61 @@ function drawBoard()
     end
 end
 
+function saveBoard()
+    local saveData = {}
+
+    for y = 1, GRID_HEIGHT do
+        saveData[y] = {}
+        for x = 1, GRID_WIDTH do
+            if board[y][x] ~= nil then
+                saveData[y][x] = colorToString(board[y][x])
+            else
+                saveData[y][x] = false
+            end
+        end
+    end
+    
+    local jsonData = json.encode(saveData)
+    love.filesystem.write("board_save.json", jsonData)
+end
+
 function resetBoard()
     for y = 1, GRID_HEIGHT do
         board[y] = {}
         for x = 1, GRID_WIDTH do
             board[y][x] = nil
         end
+    end
+end
+
+function stringToColor(s)
+    local r, g, b = s:match("([^,]+),([^,]+),([^,]+)")
+    return {tonumber(r), tonumber(g), tonumber(b)}
+end
+
+function loadBoard()
+    if love.filesystem.getInfo("board_save.json") then
+        local data = love.filesystem.read("board_save.json")
+        local loaded = json.decode(data)
+
+        for y = 1, GRID_HEIGHT do
+            board[y] = {}
+            for x = 1, GRID_WIDTH do
+                if loaded[y][x] and type(loaded[y][x]) == "string" then
+                    board[y][x] = stringToColor(loaded[y][x])
+                else
+                    board[y][x] = nil
+                end
+            end
+        end
+    else
+        resetBoard()
+    end
+    if love.filesystem.getInfo("score_save.txt") then
+        local data = love.filesystem.read("score_save.txt")
+        clearedLines = tonumber(data) or 0
+    else
+        clearedLines = 0
     end
 end
 
@@ -237,9 +295,15 @@ function love.update(dt)
 end
 
 function love.keypressed(key)
-    if current_scene == "menu" and key == "return" then
-        current_scene = "game"
-        return
+    if current_scene == "menu" then
+        if  key == "return" then
+            current_scene = "game"
+            return
+        elseif key == "space" then
+            current_scene = "game"
+            loadBoard()
+            return
+        end
     end
 
     if current_scene == "game" then
@@ -282,7 +346,8 @@ function drawMenu()
     love.graphics.setFont(font)
     love.graphics.printf("TETRIS", 0, GRID_HEIGHT * BLOCK_SIZE / 3, GRID_WIDTH * BLOCK_SIZE, "center")
     love.graphics.setFont(love.graphics.newFont("Savate.ttf",20))
-    love.graphics.printf("Press Enter to start", 0, GRID_HEIGHT * BLOCK_SIZE / 2, GRID_WIDTH * BLOCK_SIZE, "center")
+    love.graphics.printf("Press Enter to start new", 0, GRID_HEIGHT * BLOCK_SIZE / 2, GRID_WIDTH * BLOCK_SIZE, "center")
+    love.graphics.printf("Press Space to load from checkpoint", 0, GRID_HEIGHT * BLOCK_SIZE / 2 + 20, GRID_WIDTH * BLOCK_SIZE, "center")
 
     local controlsFont = love.graphics.newFont("Savate.ttf", 16)
     love.graphics.setFont(controlsFont)
