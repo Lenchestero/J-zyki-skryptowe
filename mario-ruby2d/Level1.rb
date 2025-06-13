@@ -18,39 +18,34 @@ $current_scene = :menu
 @lifes = 3
 @dude_health = 5
 @enemies = []
-@hit = 0
+@is_player_added = false
 
 def draw_menu
 	clear
 	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
-
 	title = Text.new(
-	"PLATFORM JUMPER",
-	x: Window.width / 2, 
-	y: Window.height / 2 - 100,
-	size: 64,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"PLATFORM JUMPER",
+		x: Window.width / 2, 
+		y: Window.height / 2 - 100,
+		size: 64,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	title.x -= title.width / 2
-
 	controls = Text.new(
-	"Controls: Arrows to move, space bar to jump, F to attack",
-	x: Window.width / 2,
-	y: Window.height / 2 - 30,
-	size: 20,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"Controls: Arrows to move, space bar to jump, F to attack",
+		x: Window.width / 2,
+		y: Window.height / 2 - 30,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	controls.x -= controls.width / 2
-
-
-
 	subtitle = Text.new(
-	"Press ENTER to start game",
-	x: Window.width / 2, 
-	y: Window.height / 2 + 50,
-	size: 20,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"Press ENTER to start game",
+		x: Window.width / 2, 
+		y: Window.height / 2 + 50,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	subtitle.x -= subtitle.width / 2
 
 	@texts = [title, controls, subtitle]
@@ -59,6 +54,10 @@ end
 def add_platform(has_enemy:,ismovable:,length:,height:,position:)
 	unless ismovable
 		length.times do |x|
+			unless @is_player_added
+				@dude = Sprite.new('assets/spritesheet.png', clip_width: 128, clip_height: 128, x: position + (length * 64)/2, y: height - 130, time: 100, animations: { idle: 25..27, kick: 1..4, jump: 6..12, run: 13..24})
+				@is_player_added = true
+			end
 			h = position + (x*64)
 			tile = Image.new('assets/Tile_02.png', x: h, y: height, width: 64, height: 64)
 			@platforms << {Image: tile, x: position, y: height, length: length, width: length * 64, height: 64 }
@@ -83,6 +82,22 @@ def add_platform(has_enemy:,ismovable:,length:,height:,position:)
 		coin = Image.new('assets/coin.png', x: h, y: height - 70, width: 40, height: 40)
 		@coins << coin
 	end
+end
+
+def load_level(file_path)
+	File.readlines(file_path).each do |line|
+    	parts = line.strip.split
+    	has_enemy = false
+    	ismovable = false
+        if parts[0] == "true"
+        	has_enemy = true
+        end
+        if parts[1] == "true"
+        	ismovable = true
+        end
+        length, height, position = parts[2..4].map(&:to_i)
+        add_platform(has_enemy: has_enemy, ismovable: ismovable, length: length, height: height, position: position)
+   	end
 end
 
 def move_enemy
@@ -161,6 +176,7 @@ end
 
 def start_game
 	clear
+	@is_player_added = false
 	@platforms.clear
 	@moving_platforms.clear
 	@coins.clear
@@ -170,32 +186,27 @@ def start_game
 	@coins_collected = 0
 	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
 	@score = Text.new(
-	"Score: 0",
-	x: 24,
-	y: 24,
-	size: 20,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"Score: 0",
+		x: 24,
+		y: 24,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	@life_text = Text.new(
-	"Lifes left: 2",
-	x: Window.width/2 - 50,
-	y: 20,
-	size: 20,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"Lifes left: 2",
+		x: Window.width/2 - 50,
+		y: 20,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	@health_text = Text.new(
-	"Health: 5",
-	x: 1150,
-	y: 20,
-	size: 20,
-	color: 'white',
-	font: 'assets/Regular.ttf')
-	add_platform(has_enemy: false, ismovable: false, length: 6, height: 560, position: 20)
-	add_platform(has_enemy: true, ismovable: false, length: 7, height: 500, position: 450)
-	add_platform(has_enemy: false, ismovable: false, length: 4, height: 300, position: 100)
-	add_platform(has_enemy: true, ismovable: false, length: 4, height: 600, position: 1000)
-	add_platform(has_enemy: false, ismovable: true, length: 4, height: 200, position: 600)
-	@dude = Sprite.new('assets/spritesheet.png', clip_width: 128, clip_height: 128, x: 100, y: 432, time: 100, animations: { idle: 25..27, kick: 1..4, jump: 6..12, run: 13..24})
+		"Health: 5",
+		x: 1150,
+		y: 20,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
+	load_level("level.txt")
 	@last_attack = Time.now
 	@dude.play animation: :idle, loop: true	
 	@player_state = :idle
@@ -211,21 +222,21 @@ def death
 	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
 	@background.color = [1, 0, 0, 0.5]
 	title = Text.new(
-	"You died",
-	x: Window.width / 2, 
-	y: Window.height / 2 - 100,
-	size: 64,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"You died",
+		x: Window.width / 2, 
+		y: Window.height / 2 - 100,
+		size: 64,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	title.x -= title.width / 2
 
 	subtitle = Text.new(
-	"Press ENTER to restart",
-	x: Window.width / 2, 
-	y: Window.height / 2 + 50,
-	size: 20,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"Press ENTER to restart",
+		x: Window.width / 2, 
+		y: Window.height / 2 + 50,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	subtitle.x -= subtitle.width / 2
 end
 
@@ -234,21 +245,21 @@ def win
 	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
 	@background.color = [0, 1, 0, 0.5]
 	title = Text.new(
-	"You won!",
-	x: Window.width / 2, 
-	y: Window.height / 2 - 100,
-	size: 64,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"You won!",
+		x: Window.width / 2, 
+		y: Window.height / 2 - 100,
+		size: 64,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	title.x -= title.width / 2
 
 	subtitle = Text.new(
-	"Press ENTER to restart",
-	x: Window.width / 2, 
-	y: Window.height / 2 + 50,
-	size: 20,
-	color: 'white',
-	font: 'assets/Regular.ttf')
+		"Press ENTER to restart",
+		x: Window.width / 2, 
+		y: Window.height / 2 + 50,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
 	subtitle.x -= subtitle.width / 2
 end
 
