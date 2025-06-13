@@ -1,5 +1,4 @@
 json = require "json"
-io.stdout:setvbuf("no")
 
 
 current_scene = "menu"
@@ -356,6 +355,37 @@ function love.update(dt)
     end
 end
 
+function love.touchpressed(id, x, y, dx, dy, pressure)
+    local screen_w = love.graphics.getWidth()
+    local screen_h = love.graphics.getHeight()
+    if current_scene == "game" then
+        if x < screen_w / 3 and canMove(currentPiece, -1, 0) then
+            currentPiece.x = currentPiece.x - 1
+            playSoundClone(sound.move)
+        elseif y < screen_h * 0.7 then
+            local rotatedShape = rotateMatrix(currentPiece.shape)
+            local testPiece = {
+                shape = rotatedShape,
+                x = currentPiece.x,
+                y = currentPiece.y
+            }
+            if canMove(testPiece, 0, 0) then
+                currentPiece.shape = rotatedShape
+            end
+        elseif x > 2 * screen_w/3 and canMove(currentPiece, 1, 0) then
+            currentPiece.x = currentPiece.x + 1
+            playSoundClone(sound.move)
+        elseif y > screen_h * 0.7 then
+            hardDrop()
+        end
+    end
+    if current_scene == "menu" then
+        if x > 0 and x < screen_w then
+            playSoundClone(sound.menu)
+            current_scene = "game"
+        end
+    end
+end
 
 function love.keypressed(key)
     if current_scene == "menu" then
