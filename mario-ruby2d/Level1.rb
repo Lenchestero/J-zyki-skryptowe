@@ -1,7 +1,7 @@
 require 'ruby2d'
 
 set title: "Platform Jumper"
-set width: 1280, height: 720
+set width: 1280, height: 768
 
 $current_scene = :menu
 @background = nil
@@ -19,10 +19,15 @@ $current_scene = :menu
 @dude_health = 5
 @enemies = []
 @is_player_added = false
+@is_random = false
+@starting_x = 0
+@starting_y = 0
+
 
 def draw_menu
 	clear
-	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
+	@is_random = false
+	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 768)
 	title = Text.new(
 		"PLATFORM JUMPER",
 		x: Window.width / 2, 
@@ -47,6 +52,14 @@ def draw_menu
 		color: 'white',
 		font: 'assets/Regular.ttf')
 	subtitle.x -= subtitle.width / 2
+	subtitle2 = Text.new(
+		"Press SPACE to generate random level",
+		x: Window.width / 2, 
+		y: Window.height / 2 + 75,
+		size: 20,
+		color: 'white',
+		font: 'assets/Regular.ttf')
+	subtitle2.x -= subtitle2.width / 2
 
 	@texts = [title, controls, subtitle]
 end
@@ -55,32 +68,73 @@ def add_platform(has_enemy:,ismovable:,length:,height:,position:)
 	unless ismovable
 		length.times do |x|
 			unless @is_player_added
-				@dude = Sprite.new('assets/spritesheet.png', clip_width: 128, clip_height: 128, x: position + (length * 64)/2, y: height - 130, time: 100, animations: { idle: 25..27, kick: 1..4, jump: 6..12, run: 13..24})
+				@dude = Sprite.new('assets/spritesheet.png', clip_width: 128, clip_height: 128, x: position + length * 32 - 64, y: height - 130, time: 100, animations: { idle: 25..27, kick: 1..4, jump: 6..12, run: 13..24})
 				@is_player_added = true
+				@starting_x = position + length * 32 - 64
+				@starting_y = height - 130
 			end
 			h = position + (x*64)
 			tile = Image.new('assets/Tile_02.png', x: h, y: height, width: 64, height: 64)
 			@platforms << {Image: tile, x: position, y: height, length: length, width: length * 64, height: 64 }
+			h = position + (x * 64) + 16
+			coin = Image.new('assets/coin.png', x: h, y: height - 70, width: 40, height: 40)
+			@coins << coin
 		end
 		if has_enemy
-			enemy = Sprite.new('assets/spritesheet_enemy.png', clip_width: 64, clip_height: 64, width: 128, height: 128, x: position + (length * 64) / 2, y: height - 78, time: 100, animations: { walk: 1..8, attack: 9..18})
+			enemy = Sprite.new('assets/spritesheet_enemy.png', clip_width: 64, clip_height: 64, width: 128, height: 128, x: position + (length * 64) / 2 -64, y: height - 78, time: 100, animations: { walk: 1..8, attack: 9..18})
 			enemy.play animation: :walk, loop: true
 			@enemies << { Image: enemy, direction: 1, health: 5, min_x: position - 10, max_x: position + length *64 + 10, enemy_last_attack: Time.now, is_attacking: false}
 		end
 	else
 		moving_tile= {
 			image: Image.new('assets/moving_tile.png', x: position, y: height, width: 256, height: 64),
-			speed: 1,
+			speed: 2,
 			min_x: position - 200,
 			max_x: position + 200,
 			direction: 1}
 		@moving_platforms << moving_tile
+	end 
+end
+
+def randomize
+	columns = 5
+	rows = 6
+	cell_width = Window.width / columns
+	cell_height = Window.height / rows
+	platform_count = rand(10...17)
+	enemy_count = rand(2...(platform_count/2 + 1))
+	movable_platform_count = rand(1...4)
+  	grid = []
+
+  	while platform_count > 0 
+	    x = rand(0...columns)
+	    y = rand(0...rows)
+		next if grid.any? { |gx, gy| gx == x && (gy - y).abs <= 1 }
+	    grid << [x, y]
+
+	   	length = rand(2...5)
+	  	height = cell_height * y + 64
+	    position = x * cell_width + (cell_width - length * 64)/2
+		has_enemy = false
+		if @is_player_added == false
+			has_enemy = false
+		elsif enemy_count > 0
+			has_enemy = true
+			enemy_count -= 1
+	    end
+	    add_platform(has_enemy: has_enemy, ismovable: false, length: length, height: height, position: position)
+	    platform_count -= 1
 	end
-	amount = length/2 
-	amount.times do |x|
-		h = position + 10 + (x*32) + (x*130)
-		coin = Image.new('assets/coin.png', x: h, y: height - 70, width: 40, height: 40)
-		@coins << coin
+
+	while movable_platform_count > 0
+		x = rand(0...columns)
+	    y = rand(0...rows)
+
+	    grid << [x, y]
+	  	height = cell_height * y + 64
+	    position = x * cell_width + (cell_width - length * 64)/2
+	    add_platform(has_enemy: false, ismovable: true, length: 4, height: height, position: position)
+	    movable_platform_count -= 1
 	end
 end
 
@@ -174,6 +228,8 @@ def attacking
 	end
 end
 
+
+
 def start_game
 	clear
 	@is_player_added = false
@@ -184,7 +240,7 @@ def start_game
 	@health = 5
 	@enemies.clear
 	@coins_collected = 0
-	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
+	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 768)
 	@score = Text.new(
 		"Score: 0",
 		x: 24,
@@ -206,7 +262,11 @@ def start_game
 		size: 20,
 		color: 'white',
 		font: 'assets/Regular.ttf')
-	load_level("level.txt")
+	unless @is_random
+		load_level("level.txt")
+	else
+		randomize
+	end
 	@last_attack = Time.now
 	@dude.play animation: :idle, loop: true	
 	@player_state = :idle
@@ -219,7 +279,7 @@ end
 
 def death
 	clear
-	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
+	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 768)
 	@background.color = [1, 0, 0, 0.5]
 	title = Text.new(
 		"You died",
@@ -242,7 +302,7 @@ end
 
 def win
 	clear
-	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 720)
+	@background = Image.new('assets/background.png', x: 0, y: 0, width: 1280, height: 768)
 	@background.color = [0, 1, 0, 0.5]
 	title = Text.new(
 		"You won!",
@@ -284,6 +344,10 @@ on :key_down do |event|
 		when :menu
 		if event.key == "return"
 			$current_scene = :level1
+			start_game
+		elsif event.key == "space"
+			$current_scene = :level1
+			@is_random = true
 			start_game
 		end
 		when :death
@@ -359,8 +423,8 @@ update do
 				@life_text.text = "Lifes left: #{@lifes - 1}"
 				@dude_health = 5
 				@health_text.text = "Health: #{@dude_health}"
-				@dude.x = 100
-				@dude.y = 432
+				@dude.x = @starting_x
+				@dude.y = @starting_y
 			end
 		end
 		if @dude_health == 0
@@ -371,8 +435,8 @@ update do
 				@lifes -= 1
 				@dude_health = 5
 				@health_text.text = "Health: #{@dude_health}"
-				@dude.x = 100
-				@dude.y = 432
+				@dude.x = @starting_x
+				@dude.y = @starting_y
 				@dude.color = [1,1,1,1]
 			end
 		end
