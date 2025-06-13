@@ -11,6 +11,11 @@ fallTimer = 0
 fallInterval = 0.5
 clearedLines = 0
 gameOver = false
+linesToClear = {}
+isAnimating = false
+animationVisible = true
+animationTimer = 0
+animationDuration = 0.5
 
 board = {}
 
@@ -182,36 +187,57 @@ function placePiece()
 end
 
 function clearLines()
-    local linesClearedNow = 0
-    local y = GRID_HEIGHT
-
-    while y >= 1 do
+    linesToClear = {}
+    for y = GRID_HEIGHT, 1, -1 do
         local full = true
         for x = 1, GRID_WIDTH do
-           if board[y][x] == nil then
+            if board[y][x] == nil then
                 full = false
                 break
             end
         end
-
         if full then
-            table.remove(board, y)
-            local newLine = {}
-            for x = 1, GRID_WIDTH do
-                newLine[x] = nil
-            end
-            table.insert(board, 1, newLine)
-            linesClearedNow = linesClearedNow + 1
-            playSoundClone(sound.clear)
-        else
-            y = y - 1
+            table.insert(linesToClear, y)
         end
     end
 
-    clearedLines = clearedLines + linesClearedNow
-    love.filesystem.write("score_save.txt", tostring(clearedLines))
-    saveBoard()
+    if #linesToClear > 0 then
+        animationTimer = 0
+        isAnimating = true
+        animationVisible = true
+        playSoundClone(sound.clear)
+    end
 end
+
+function updateLineClear(dt)
+    if  isAnimating then
+        animationTimer = animationTimer + dt
+        if animationTimer >= animationDuration then
+            table.sort(linesToClear, function(a, b) return a > b end)
+            for _, y in ipairs(linesToClear) do
+                table.remove(board, y)
+            end
+
+            for i = 1, #linesToClear do
+                local newLine = {}
+                for x = 1, GRID_WIDTH do
+                    newLine[x] = nil
+                end
+                table.insert(board, 1, newLine)
+            end
+
+            clearedLines = clearedLines + #linesToClear
+            love.filesystem.write("score_save.txt", tostring(clearedLines))
+            saveBoard()
+
+            linesToClear = {}
+            isAnimating = false
+        else
+            animationVisible = math.floor(animationTimer * 10) % 2 == 0
+        end
+    end
+end
+
 
 function drawBoard()
     for y = 1, GRID_HEIGHT do
@@ -219,10 +245,25 @@ function drawBoard()
             local drawX = (x - 1) * BLOCK_SIZE
             local drawY = (y - 1) * BLOCK_SIZE
 
-            if board[y][x] ~= nil then
+           if board[y][x] ~= nil then
+            local shouldFlash = false
+            for _, clearY in ipairs(linesToClear) do
+                if y == clearY then
+                    shouldFlash = true
+                    break
+                end
+            end
+
+            if not (shouldFlash and isAnimating and not animationVisible) then
                 local color = board[y][x]
-                love.graphics.setColor(color[1], color[2], color[3])
+                if shouldFlash and  isAnimating then
+                    love.graphics.setColor(1, 1, 1)
+                else
+                    love.graphics.setColor(color[1], color[2], color[3])
+                end
                 love.graphics.rectangle("fill", drawX, drawY, BLOCK_SIZE, BLOCK_SIZE)
+            end
+
             else
                 love.graphics.setColor(0.9, 0.9, 0.9, 0.1)
                 love.graphics.rectangle("line", drawX, drawY, BLOCK_SIZE, BLOCK_SIZE)
@@ -304,13 +345,17 @@ end
 function love.update(dt)
     if gameOver then return end
     if current_scene == "game" then
-        fallTimer = fallTimer + dt
-        if fallTimer >= fallInterval then
-            fallTimer = 0
-            movePieceDown()
+        updateLineClear(dt)
+        if not  isAnimating then
+            fallTimer = fallTimer + dt
+            if fallTimer >= fallInterval then
+                fallTimer = 0
+                movePieceDown()
+            end
         end
     end
 end
+
 
 function love.keypressed(key)
     if current_scene == "menu" then
