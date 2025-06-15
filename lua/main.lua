@@ -44,6 +44,7 @@ function love.load()
     font = love.graphics.newFont("Savate.ttf", 52)
     math.randomseed(os.time())
 
+    loadBoard()
 
     for y = 1, GRID_HEIGHT do
         board[y] = {}
@@ -289,6 +290,7 @@ function saveBoard()
     end
 
     local jsonData = json.encode(saveData)
+    love.filesystem.write("score_save.txt", tostring(clearedLines))
     love.filesystem.write("board_save.json", jsonData)
 end
 
@@ -323,6 +325,7 @@ function loadBoard()
         end
     else
         resetBoard()
+        clearedLines = 0
     end
     if love.filesystem.getInfo("score_save.txt") then
         local data = love.filesystem.read("score_save.txt")
