@@ -11,7 +11,11 @@ command_tree = app_commands.CommandTree(client)
 
 teams_data = [{"team": "Killphoria", "players": ["Adolf", "Agnieszka", "Albert", "Hipacy", "Izaur"]},
 {"team": "Pixel Armada", "players": ["Awit", "Awita", "Drogomysł", "Izaura", "Marcjan"]},
-{"team": "Arcane Rift", "players": ["Franciszek", "Gundolf", "Herweusz", "Nikander", "Nikandra"]}]
+{"team": "Arcane Rift", "players": ["Franciszek", "Gundolf", "Herweusz", "Nikander", "Nikandra"]},
+{"team": "KOVA", "players": ["Bogumił", "Małgorzata", "Amancjusz", "Amata", "Apollo"]},
+{"team": "SYND", "players": ["Asteriusz", "Aureliusz", "Bogumiła", "Cecylia", "Diana"]},
+{"team": "CtrlAltElite", "players": ["Edgar", "Henryk", "Ingolf", "Jan", "Maksym"]}
+]
 
 tournament_name = ""
 current_brackets = ""
@@ -25,7 +29,7 @@ def ask_llm(prompt):
 async def introduction(interaction: discord.Interaction, game: str):
     await interaction.response.defer(thinking=True)
     global tournament_name
-    tournament_name = ask_llm(("Create some name for an e-sport tournament. Output only this name"))
+    tournament_name = ask_llm(("Create some name for an e-sport tournament. Don't use 'apex' in the game. Output only this name"))
     prompt = (
         f"Give introduction to the {game} e-sport tournament named {tournament_name}. Come up with a reward. Invite to participate. Don't make it long."
     )
@@ -78,9 +82,18 @@ async def add_player(interaction: discord.Interaction, team_name:str, player:str
             prompt = ask_llm(
                 f"Say that you successfully added {player} to {team_name}. Print this player's position in team. Print also tournament's name = {tournament_name} and current brackets = {current_brackets}. Don't add your thinking inside."
             )
+            break
         else:
             prompt = ("Team not found.")
 
+    await interaction.followup.send(prompt)
+
+@command_tree.command(name="show", description="Shows all information about tournament")
+async def show(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    prompt =ask_llm(
+        f"Show tournament name {tournament_name}, all teams and players from {teams_data} and state of games from {current_brackets}. Wrap it up in short summary."
+    )
     await interaction.followup.send(prompt)
 
 @client.event
