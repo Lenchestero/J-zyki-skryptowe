@@ -9,11 +9,12 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 command_tree = app_commands.CommandTree(client)
 
-teams_data = [{"team": "A", "players": "Adolf, Agnieszka, Albert, Hipacy, Izaur"},
-{"team": "B", "players": "Awit, Awita, Drogomysł, Izaura, Marcjan"},
-{"team": "C", "players": "Franciszek, Gundolf, Herweusz, Nikander, Nikandra"}]
+teams_data = [{"team": "Killphoria", "players": "Adolf, Agnieszka, Albert, Hipacy, Izaur"},
+{"team": "Pixel Armada", "players": "Awit, Awita, Drogomysł, Izaura, Marcjan"},
+{"team": "Arcane Rift", "players": "Franciszek, Gundolf, Herweusz, Nikander, Nikandra"}]
 
 tournament_name = ""
+current_brackets = ""
 
 def ask_llm(prompt):
     response = ollama.chat(model=LLM_MODEL, messages=[{"role": "user", "content": prompt}])
@@ -34,7 +35,7 @@ async def introduction(interaction: discord.Interaction, game: str):
 async def scoring_players(interaction: discord.Interaction, team: str):
     await interaction.response.defer(thinking=True)
     prompt = (
-        f"Here are the data of current teams:{teams_data}. Generate ranking of players on the team {team}. Come up with their k/d/a statistics from past tournaments. Output only the ranking with statistics, don't add other explanation."
+        f"Here are the data of current teams:{teams_data}. Generate ranking of players on the team {team}. Come up with their k/d/a statistics from past tournaments and base your ranking on it. Output only the ranking with statistics, don't add other explanation."
     )
     result = ask_llm(prompt)
     await interaction.followup.send(result[:2000])
@@ -47,6 +48,16 @@ async def scoring_teams(interaction: discord.Interaction):
     )
     result = ask_llm(prompt)
     await interaction.followup.send(result[:2000])
+
+@command_tree.command(name="tournament_brackets", description="List current games")
+async def tournament_brackets(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    prompt = (
+        f"Here are the data of current teams: {teams_data}. Print out the current stage of tournament- possible stages- quarterfinals, semifinals, finals. Then create brackets for the teams (which teams vs which team). Don't add any other explanation."
+    )
+    current_brackets = ask_llm(prompt)
+    await interaction.followup.send(current_brackets)
+
 
 @client.event
 async def on_ready():
