@@ -25,7 +25,7 @@ def ask_llm(prompt):
 async def introduction(interaction: discord.Interaction, game: str):
     await interaction.response.defer(thinking=True)
     global tournament_name
-    tournament_name = ask_llm(("Create some fancy name for e-sport tournament. Output only this name"))
+    tournament_name = ask_llm(("Create some name for an e-sport tournament. Output only this name"))
     prompt = (
         f"Give introduction to the {game} e-sport tournament named {tournament_name}. Come up with a reward. Invite to participate. Don't make it long."
     )
@@ -75,8 +75,8 @@ async def add_player(interaction: discord.Interaction, team_name:str, player:str
     for team in teams_data:
         if team["team"] == team_name:
             team["players"].append(player)
-            prompt = (
-                f"Successfully added {player} to {team_name}"
+            prompt = ask_llm(
+                f"Say that you successfully added {player} to {team_name}. Print this player's position in team. Print also tournament's name = {tournament_name} and current brackets = {current_brackets}. Don't add your thinking inside."
             )
         else:
             prompt = ("Team not found.")
